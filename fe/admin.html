@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - BelajarBahasa</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+    <!-- Header dan Navigasi -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="nav-brand">BelajarBahasa - Admin</a>
+                <ul class="nav-menu" id="navAuthItems">
+                    <!-- Diisi dinamis oleh JS -->
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Admin Dashboard -->
+    <section class="container" style="margin-top: 30px;">
+        <h1>Dashboard Admin</h1>
+        <div id="adminAlert"></div>
+        
+        <!-- Dashboard Stats -->
+        <div class="admin-stats">
+            <div class="stat-card">
+                <h3>Total Pengguna</h3>
+                <div class="stat-number" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Materi</h3>
+                <div class="stat-number" id="totalLessons">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Kuis</h3>
+                <div class="stat-number" id="totalQuizzes">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Komentar</h3>
+                <div class="stat-number" id="totalComments">-</div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="admin-tabs">
+            <button class="tab-button active" onclick="showTab('users')">Kelola Pengguna</button>
+            <button class="tab-button" onclick="showTab('lessons')">Kelola Materi</button>
+            <button class="tab-button" onclick="showTab('quizzes')">Kelola Kuis</button>
+            <button class="tab-button" onclick="showTab('comments')">Kelola Komentar</button>
+        </div>        <!-- Users Management Tab -->
+        <div id="usersTab" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Manajemen Pengguna</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportUsers()">Export CSV</button>
+                        <button class="btn" onclick="showCreateUserModal()">Tambah Pengguna</button>
+                    </div>
+                </div>
+                <div id="bulkUsersActions" class="bulk-actions" style="display: none;"></div>
+                <div id="usersContent">
+                    <p>Memuat data pengguna...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lessons Management Tab -->
+        <div id="lessonsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Manajemen Materi Pembelajaran</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportLessons()">Export CSV</button>
+                        <button class="btn" onclick="showCreateLessonModal()">Tambah Materi</button>
+                    </div>
+                </div>
+                <div id="bulkLessonsActions" class="bulk-actions" style="display: none;"></div>
+                <div id="lessonsContent">
+                    <p>Memuat data materi...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quizzes Management Tab -->
+        <div id="quizzesTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Manajemen Kuis</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportQuizzes()">Export CSV</button>
+                        <button class="btn" onclick="showCreateQuizModal()">Tambah Kuis</button>
+                    </div>
+                </div>
+                <div id="bulkQuizzesActions" class="bulk-actions" style="display: none;"></div>
+                <div id="quizzesContent">
+                    <p>Memuat data kuis...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Management Tab -->
+        <div id="commentsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Manajemen Komentar</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportComments()">Export CSV</button>
+                    </div>
+                </div>
+                <div id="bulkCommentsActions" class="bulk-actions" style="display: none;"></div>
+                <div id="commentsContent">
+                    <p>Memuat data komentar...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal untuk Create/Edit User -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Tambah Pengguna</h3>
+                <span class="close" onclick="closeModal('userModal')">&times;</span>
+            </div>
+            <form id="userForm">
+                <input type="hidden" id="userId">
+                <div class="form-group">
+                    <label for="userName" class="form-label">Nama Lengkap</label>
+                    <input type="text" id="userName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="userEmail" class="form-label">Email</label>
+                    <input type="email" id="userEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword" class="form-label">Password</label>
+                    <input type="password" id="userPassword" class="form-control">
+                    <small class="form-text">Kosongkan jika tidak ingin mengubah password</small>
+                </div>
+                <div class="form-group">
+                    <label for="userRole" class="form-label">Role</label>
+                    <select id="userRole" class="form-control" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">Batal</button>
+                    <button type="submit" class="btn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal untuk Create/Edit Lesson -->
+    <div id="lessonModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="lessonModalTitle">Tambah Materi</h3>
+                <span class="close" onclick="closeModal('lessonModal')">&times;</span>
+            </div>
+            <form id="lessonForm">
+                <input type="hidden" id="lessonId">
+                <div class="form-group">
+                    <label for="lessonTitle" class="form-label">Judul Materi</label>
+                    <input type="text" id="lessonTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="lessonLanguage" class="form-label">Bahasa</label>
+                    <input type="text" id="lessonLanguage" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="lessonContent" class="form-label">Konten Materi</label>
+                    <textarea id="lessonContent" class="form-control" rows="10" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('lessonModal')">Batal</button>
+                    <button type="submit" class="btn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal untuk Create/Edit Quiz -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="quizModalTitle">Tambah Kuis</h3>
+                <span class="close" onclick="closeModal('quizModal')">&times;</span>
+            </div>
+            <form id="quizForm">
+                <input type="hidden" id="quizId">
+                <div class="form-group">
+                    <label for="quizLessonId" class="form-label">Materi</label>
+                    <select id="quizLessonId" class="form-control" required>
+                        <option value="">Pilih Materi</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quizQuestion" class="form-label">Pertanyaan</label>
+                    <textarea id="quizQuestion" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="quizOptionA" class="form-label">Pilihan A</label>
+                    <input type="text" id="quizOptionA" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="quizOptionB" class="form-label">Pilihan B</label>
+                    <input type="text" id="quizOptionB" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="quizOptionC" class="form-label">Pilihan C</label>
+                    <input type="text" id="quizOptionC" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="quizOptionD" class="form-label">Pilihan D</label>
+                    <input type="text" id="quizOptionD" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="quizAnswer" class="form-label">Jawaban Benar</label>
+                    <select id="quizAnswer" class="form-control" required>
+                        <option value="">Pilih Jawaban</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('quizModal')">Batal</button>
+                    <button type="submit" class="btn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="container" style="margin-top: 50px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p>&copy; 2025 BelajarBahasa - Platform Pembelajaran Bahasa Online</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/admin.js"></script>
+</body>
+</html>

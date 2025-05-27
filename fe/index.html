@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belajar Bahasa - Platform Pembelajaran Bahasa Online</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Header dan Navigasi -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="nav-brand">BelajarBahasa</a>
+                <ul class="nav-menu" id="navAuthItems">
+                    <!-- Diisi dinamis oleh JS -->
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Pelajari Bahasa Baru dengan Mudah</h1>
+            <p>Platform belajar bahasa asing yang dirancang untuk memudahkan Anda menguasai bahasa baru. Materi belajar yang komprehensif, kuis interaktif, dan komunitas diskusi.</p>
+        </div>
+    </section>
+
+    <!-- Lessons Section -->
+    <section class="container">
+        <h2>Daftar Materi Pembelajaran</h2>
+        <div id="lessonList" class="lesson-list">
+            <!-- Loading placeholder -->
+            <div class="card">
+                <p>Memuat daftar materi...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="container" style="margin-top: 50px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p>&copy; 2025 BelajarBahasa - Platform Pembelajaran Bahasa Online</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        // Inisialisasi halaman
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Update navigasi berdasarkan status login
+            updateNavigation();
+            
+            // Ambil data lesson
+            try {
+                showLoading('lessonList');
+                const lessons = await LessonService.getAllLessons();
+                displayLessons(lessons);
+            } catch (error) {
+                document.getElementById('lessonList').innerHTML = `
+                    <div class="card">
+                        <p>Gagal memuat daftar materi: ${error.message || 'Terjadi kesalahan'}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Fungsi untuk menampilkan daftar lesson
+        function displayLessons(lessons) {
+            const lessonListElem = document.getElementById('lessonList');
+            
+            if (!lessons || lessons.length === 0) {
+                lessonListElem.innerHTML = `
+                    <div class="card">
+                        <p>Belum ada materi pembelajaran tersedia.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            lessonListElem.innerHTML = lessons.map(lesson => `
+                <div class="lesson-card" onclick="window.location.href='lesson.html?id=${lesson.id}'">
+                    <h3 class="lesson-title">${lesson.title}</h3>
+                    <p class="lesson-language">${lesson.language}</p>
+                    <div class="lesson-creator">Dibuat oleh: ${lesson.creator?.name || 'Admin'}</div>
+                    <div class="lesson-date">${formatDate(lesson.created_at)}</div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

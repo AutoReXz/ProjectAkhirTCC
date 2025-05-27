@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar - BelajarBahasa</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Header dan Navigasi -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="nav-brand">BelajarBahasa</a>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Beranda</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Register Form -->
+    <section class="container" style="max-width: 500px; margin-top: 50px;">
+        <div class="card">
+            <h2 class="card-title">Daftar Akun Baru</h2>
+            
+            <div id="registerAlert"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="name" class="form-label">Nama Lengkap</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword" class="form-label">Konfirmasi Password</label>
+                    <input type="password" id="confirmPassword" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%;">Daftar</button>
+            </form>
+            
+            <p style="margin-top: 20px; text-align: center;">
+                Sudah memiliki akun? <a href="login.html">Login disini</a>
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="container" style="margin-top: 50px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p>&copy; 2025 BelajarBahasa - Platform Pembelajaran Bahasa Online</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        // Cek apakah sudah login
+        document.addEventListener('DOMContentLoaded', () => {
+            // Redirect jika sudah login
+            if (redirectIfLoggedIn()) return;
+        });
+        
+        // Handle form submit
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validasi form
+            if (!name || !email || !password) {
+                showError('registerAlert', 'Semua field harus diisi');
+                return;
+            }
+            
+            // Validasi konfirmasi password
+            if (password !== confirmPassword) {
+                showError('registerAlert', 'Password dan konfirmasi password tidak cocok');
+                return;
+            }
+            
+            // Validasi panjang password
+            if (password.length < 6) {
+                showError('registerAlert', 'Password minimal 6 karakter');
+                return;
+            }
+            
+            try {
+                // Menampilkan loading
+                showLoading('registerAlert');
+                
+                // Panggil API untuk register
+                await AuthService.register(name, email, password);
+                
+                // Redirect ke beranda jika berhasil
+                window.location.href = 'index.html';
+            } catch (error) {
+                // Tampilkan error
+                let errorMessage = error.message || 'Gagal mendaftar. Silakan coba lagi.';
+                
+                // Jika ada validation errors
+                if (error.errors && error.errors.length > 0) {
+                    errorMessage = error.errors.map(err => err.msg).join('<br>');
+                }
+                
+                showError('registerAlert', errorMessage);
+            }
+        });
+    </script>
+</body>
+</html>

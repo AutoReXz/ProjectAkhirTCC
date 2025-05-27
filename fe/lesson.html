@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Materi - BelajarBahasa</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Header dan Navigasi -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="nav-brand">BelajarBahasa</a>
+                <ul class="nav-menu" id="navAuthItems">
+                    <!-- Diisi dinamis oleh JS -->
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Lesson Content -->
+    <section class="container" style="margin-top: 30px;">
+        <div id="lessonAlert"></div>
+        
+        <div id="lessonContent">
+            <!-- Loading placeholder -->
+            <div class="card">
+                <p>Memuat materi...</p>
+            </div>
+        </div>
+        
+        <!-- Quiz Section (muncul jika user login) -->
+        <div id="quizContainer" style="margin-top: 30px; display: none;">
+            <div class="card">
+                <h2 class="card-title">Kuis Materi</h2>
+                <div id="quizContent">
+                    <!-- Diisi dinamis oleh JS -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="comments-section">
+            <div class="card">
+                <h2 class="card-title">Komentar</h2>
+                
+                <!-- Comment Form (muncul jika user login) -->
+                <div id="commentForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="commentText" class="form-label">Tambahkan Komentar</label>
+                        <textarea id="commentText" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <button id="submitComment" class="btn">Kirim Komentar</button>
+                    <div id="commentAlert" style="margin-top: 10px;"></div>
+                </div>
+                
+                <!-- Comment List -->
+                <div id="commentList" style="margin-top: 20px;">
+                    <!-- Loading placeholder -->
+                    <p>Memuat komentar...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="container" style="margin-top: 50px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p>&copy; 2025 BelajarBahasa - Platform Pembelajaran Bahasa Online</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        // Variable untuk menyimpan ID lesson
+        let lessonId;
+        let currentQuiz = null;
+        let selectedAnswer = null;
+        
+        // Inisialisasi halaman
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Update navigasi
+            updateNavigation();
+            
+            // Ambil ID lesson dari URL
+            lessonId = getUrlParam('id');
+            if (!lessonId) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Load lesson
+            await loadLesson();
+            
+            // Load comments
+            await loadComments();
+            
+            // Tampilkan form komentar jika user login
+            if (AuthService.isAuthenticated()) {
+                document.getElementById('commentForm').style.display = 'block';
+                
+                // Load quizzes jika user login
+                await loadQuizzes();
+            }
+        });
+        
+        // Load lesson content
+        async function loadLesson() {
+            try {
+                showLoading('lessonContent');
+                const lesson = await LessonService.getLessonById(lessonId);
+                displayLesson(lesson);
+            } catch (error) {
+                showError('lessonAlert', `Gagal memuat materi: ${error.message || 'Terjadi kesalahan'}`);
+                document.getElementById('lessonContent').innerHTML = '';
+            }
+        }
+        
+        // Display lesson
+        function displayLesson(lesson) {
+            document.title = `${lesson.title} - BelajarBahasa`;
+            
+            document.getElementById('lessonContent').innerHTML = `
+                <div class="card">
+                    <h1 class="card-title">${lesson.title}</h1>
+                    <p class="card-subtitle">${lesson.language}</p>
+                    <div class="card-content">${lesson.content}</div>
+                    <div class="card-footer">
+                        <div>Dibuat oleh: ${lesson.creator?.name || 'Admin'}</div>
+                        <div>${formatDate(lesson.created_at)}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Load comments
+        async function loadComments() {
+            try {
+                document.getElementById('commentList').innerHTML = '<p>Memuat komentar...</p>';
+                const comments = await LessonService.getLessonComments(lessonId);
+                displayComments(comments);
+            } catch (error) {
+                document.getElementById('commentList').innerHTML = `
+                    <p>Gagal memuat komentar: ${error.message || 'Terjadi kesalahan'}</p>
+                `;
+            }
+        }
+        
+        // Display comments
+        function displayComments(comments) {
+            const commentListElem = document.getElementById('commentList');
+            
+            if (!comments || comments.length === 0) {
+                commentListElem.innerHTML = '<p>Belum ada komentar.</p>';
+                return;
+            }
+            
+            commentListElem.innerHTML = comments.map(comment => `
+                <div class="comment">
+                    <div class="comment-user">${comment.user?.name || 'Pengguna'}</div>
+                    <div class="comment-date">${formatDate(comment.created_at)}</div>
+                    <p class="comment-text">${comment.comment}</p>
+                </div>
+            `).join('');
+        }
+        
+        // Submit comment
+        document.getElementById('submitComment')?.addEventListener('click', async () => {
+            const commentText = document.getElementById('commentText').value.trim();
+            
+            if (!commentText) {
+                showError('commentAlert', 'Komentar tidak boleh kosong');
+                return;
+            }
+            
+            try {
+                showLoading('commentAlert');
+                await LessonService.addComment(lessonId, commentText);
+                
+                // Reset form
+                document.getElementById('commentText').value = '';
+                
+                // Reload comments
+                await loadComments();
+                
+                // Show success
+                showSuccess('commentAlert', 'Komentar berhasil ditambahkan');
+                
+                // Clear success message after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('commentAlert').innerHTML = '';
+                }, 3000);
+            } catch (error) {
+                showError('commentAlert', `Gagal menambahkan komentar: ${error.message || 'Terjadi kesalahan'}`);
+            }
+        });
+        
+        // Load quizzes
+        async function loadQuizzes() {
+            try {
+                const quizzes = await LessonService.getLessonQuizzes(lessonId);
+                
+                if (quizzes && quizzes.length > 0) {
+                    // Tampilkan container quiz
+                    document.getElementById('quizContainer').style.display = 'block';
+                    
+                    // Ambil quiz pertama
+                    currentQuiz = quizzes[0];
+                    displayQuiz(currentQuiz);
+                }
+            } catch (error) {
+                console.error('Failed to load quizzes:', error);
+                // Jika error 401, berarti belum login
+                if (error.status === 401) {
+                    document.getElementById('quizContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            Anda harus login terlebih dahulu untuk mengakses kuis.
+                            <a href="login.html">Login disini</a>
+                        </div>
+                    `;
+                }
+            }        }
+        
+        // Display quiz
+        function displayQuiz(quiz) {
+            const quizContentElem = document.getElementById('quizContent');
+            
+            if (!quiz) {
+                quizContentElem.innerHTML = '<p>Tidak ada kuis tersedia untuk materi ini.</p>';
+                return;
+            }
+            
+            let optionsHtml = '';
+            
+            // Periksa apakah quiz.options adalah string atau object
+            let quizOptions;
+            if (typeof quiz.options === 'string') {
+                try {
+                    quizOptions = JSON.parse(quiz.options);
+                } catch (e) {
+                    console.error('Error parsing quiz options:', e);
+                    quizContentElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                    return;
+                }
+            } else {
+                quizOptions = quiz.options;
+            }
+            
+            // Pastikan quizOptions adalah object
+            if (!quizOptions || typeof quizOptions !== 'object') {
+                quizContentElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                return;
+            }
+            
+            // Buat HTML untuk setiap opsi
+            for (const [key, value] of Object.entries(quizOptions)) {
+                optionsHtml += `
+                    <li class="quiz-option" data-option="${key}">
+                        <strong>${key}:</strong> ${value}
+                    </li>
+                `;
+            }
+            
+            quizContentElem.innerHTML = `
+                <div class="quiz-question">${quiz.question}</div>
+                <ul class="quiz-options" id="quizOptions">
+                    ${optionsHtml}
+                </ul>
+                <div id="quizResult" style="margin-top: 15px;"></div>
+                <button id="submitQuiz" class="btn" style="margin-top: 15px;" disabled>Kirim Jawaban</button>
+            `;
+            
+            // Tambahkan event listener untuk opsi
+            const optionElements = document.querySelectorAll('.quiz-option');
+            optionElements.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Hapus selected class dari semua opsi
+                    optionElements.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Tambahkan selected class ke opsi yang dipilih
+                    option.classList.add('selected');
+                    
+                    // Simpan jawaban
+                    selectedAnswer = option.dataset.option;
+                    
+                    // Enable submit button
+                    document.getElementById('submitQuiz').disabled = false;
+                });
+            });
+            
+            // Tambahkan event listener untuk submit
+            document.getElementById('submitQuiz').addEventListener('click', submitQuizAnswer);
+        }
+        
+        // Submit quiz answer
+        async function submitQuizAnswer() {
+            if (!currentQuiz || !selectedAnswer) return;
+            
+            try {
+                // Disable submit button
+                document.getElementById('submitQuiz').disabled = true;
+                
+                // Submit jawaban
+                const result = await QuizService.submitQuizAnswer(currentQuiz.id, selectedAnswer);
+                
+                // Tampilkan hasil
+                displayQuizResult(result);
+            } catch (error) {
+                document.getElementById('quizResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        Gagal mengirim jawaban: ${error.message || 'Terjadi kesalahan'}
+                    </div>
+                `;
+                
+                // Enable submit button
+                document.getElementById('submitQuiz').disabled = false;
+            }        }
+        
+        // Display quiz result
+        function displayQuizResult(result) {
+            const quizResultElem = document.getElementById('quizResult');
+            const optionElements = document.querySelectorAll('.quiz-option');
+            
+            // Highlight jawaban
+            optionElements.forEach(option => {
+                const optionValue = option.dataset.option;
+                
+                // Reset classes
+                option.classList.remove('correct', 'incorrect');
+                
+                // Jawaban yang dipilih
+                if (optionValue === selectedAnswer) {
+                    if (result.correct) {
+                        option.classList.add('correct');
+                    } else {
+                        option.classList.add('incorrect');
+                    }
+                }
+                
+                // Jawaban yang benar (jika salah)
+                if (!result.correct && optionValue === result.correctAnswer) {
+                    option.classList.add('correct');
+                }
+            });
+            
+            // Tampilkan pesan hasil
+            if (result.correct) {
+                quizResultElem.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Jawaban benar!</strong><br>
+                        Skor: ${result.progress ? result.progress.score : 'N/A'}
+                    </div>
+                `;
+            } else {
+                quizResultElem.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Jawaban salah!</strong><br>
+                        Jawaban yang benar adalah: ${result.correctAnswer}<br>
+                        Skor: ${result.progress ? result.progress.score : 'N/A'}
+                    </div>
+                `;
+            }
+            
+            // Disable all options
+            optionElements.forEach(option => {
+                option.style.pointerEvents = 'none';
+            });
+        }
+    </script>
+</body>
+</html>

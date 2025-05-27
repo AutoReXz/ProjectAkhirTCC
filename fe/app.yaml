@@ -1,0 +1,26 @@
+runtime: python311  # Python 3.11 runtime
+
+handlers:
+  # Serve static files
+  - url: /(.*\.(gif|png|jpg|jpeg|ico|bmp|css|js))$
+    static_files: \1
+    upload: .*\.(gif|png|jpg|jpeg|ico|bmp|css|js)$
+    secure: always
+
+  # Main page
+  - url: /
+    static_files: index.html
+    upload: index.html
+    secure: always
+
+  # HTML pages
+  - url: /(.*\.html)
+    static_files: \1
+    upload: .*\.html$
+    secure: always
+
+  # Catch-all rule
+  - url: /(.*)
+    static_files: index.html
+    upload: index.html
+    secure: always
