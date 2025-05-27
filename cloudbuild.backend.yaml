@@ -4,6 +4,23 @@ steps:
     args: ["cp", "${_ENV}", ".env"]
     dir: "be"
 
+  # 0.5. Verify environment file
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "sh"
+    args:
+      - "-c"
+      - |
+        echo "=== Checking environment file ==="
+        if [ -f .env ]; then
+          echo "✅ .env file exists"
+          echo "Environment variables (hiding sensitive data):"
+          sed 's/=.*/=[HIDDEN]/' .env
+        else
+          echo "❌ .env file not found"
+          exit 1
+        fi
+    dir: "be"
+
   # 1. Build Docker image untuk backend
   - name: "gcr.io/cloud-builders/docker"
     args: ["build", "-t", "gcr.io/$PROJECT_ID/bahasa-app-backend", "."]
@@ -13,12 +30,25 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/$PROJECT_ID/bahasa-app-backend"]
 
-  # 2.5. Run database migrations
+  # 2.5. Test database connection and run migrations
   - name: "gcr.io/cloud-builders/docker"
     entrypoint: "sh"
     args:
       - "-c"
       - |
+        echo "=== Testing database connection ==="
+        docker run --rm \
+        --env-file .env \
+        gcr.io/$PROJECT_ID/bahasa-app-backend \
+        npm run db:check
+        
+        echo "=== Creating database if needed ==="
+        docker run --rm \
+        --env-file .env \
+        gcr.io/$PROJECT_ID/bahasa-app-backend \
+        npm run db:create || echo "Database might already exist, continuing..."
+        
+        echo "=== Running database migrations ==="
         docker run --rm \
         --env-file .env \
         gcr.io/$PROJECT_ID/bahasa-app-backend \
