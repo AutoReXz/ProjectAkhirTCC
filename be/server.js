@@ -52,13 +52,22 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'Unknown';
+  
+  try {
+    await sequelize.authenticate();
+    dbStatus = 'Connected';
+  } catch (error) {
+    dbStatus = 'Disconnected';
+  }
+  
   res.status(200).json({
     status: 'UP',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: {
-      status: sequelize.authenticate().then(() => 'Connected').catch(() => 'Disconnected')
+      status: dbStatus
     }
   });
 });
@@ -75,14 +84,43 @@ app.use(errorHandler);
 // Sync database and start server
 const startServer = async () => {
   try {
+    console.log('🔗 Testing database connection...');
     await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
+    console.log('✅ Database connection has been established successfully.');
+    
+    // Run database migrations on startup
+    console.log('🚀 Running database migrations...');
+    const { execSync } = require('child_process');
+    
+    try {
+      // Create database if it doesn't exist
+      console.log('📝 Creating database if needed...');
+      execSync('npx sequelize-cli db:create', { stdio: 'inherit' });
+    } catch (createError) {
+      console.log('ℹ️ Database might already exist, continuing...');
+    }
+    
+    try {
+      // Run migrations
+      console.log('📋 Running migrations...');
+      execSync('npx sequelize-cli db:migrate', { stdio: 'inherit' });
+      console.log('✅ Database migrations completed successfully.');
+    } catch (migrateError) {
+      console.warn('⚠️ Migration failed, but starting server anyway:', migrateError.message);
+    }
     
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`📚 API docs: http://localhost:${PORT}/api/docs`);
     });
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    console.error('❌ Unable to connect to the database:', error);
+    console.log('🔄 Starting server without database connection...');
+    
+    app.listen(PORT, () => {
+      console.log(`⚠️ Server is running on port ${PORT} (without database)`);
+    });
   }
 };
 
