@@ -54,12 +54,14 @@ app.get('/', (req, res) => {
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'Unknown';
+  let dbError = null;
   
   try {
     await sequelize.authenticate();
     dbStatus = 'Connected';
   } catch (error) {
     dbStatus = 'Disconnected';
+    dbError = error.message;
   }
   
   res.status(200).json({
@@ -67,9 +69,48 @@ app.get('/api/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: {
-      status: dbStatus
+      status: dbStatus,
+      host: process.env.DB_HOST,
+      name: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      error: dbError
     }
   });
+});
+
+// Database debug endpoint
+app.get('/api/debug/db', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    const [results] = await sequelize.query('SELECT 1 as test, NOW() as current_time');
+    
+    res.json({
+      status: 'success',
+      connection: 'OK',
+      config: {
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        dialect: process.env.DB_DIALECT
+      },
+      test_query: results[0]
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      connection: 'FAILED',
+      config: {
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        dialect: process.env.DB_DIALECT
+      },
+      error: {
+        name: error.name,
+        message: error.message
+      }
+    });
+  }
 });
 
 // Serve API documentation
@@ -85,6 +126,10 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     console.log('🔗 Testing database connection...');
+    console.log('Database Host:', process.env.DB_HOST);
+    console.log('Database Name:', process.env.DB_NAME);
+    console.log('Database User:', process.env.DB_USER);
+    
     await sequelize.authenticate();
     console.log('✅ Database connection has been established successfully.');
     
@@ -114,12 +159,16 @@ const startServer = async () => {
       console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
       console.log(`📚 API docs: http://localhost:${PORT}/api/docs`);
     });
+    
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
+    console.error('❌ Unable to connect to the database:', error.name + ':', error.message);
     console.log('🔄 Starting server without database connection...');
+    console.log('⚠️ Please check your database configuration and network access');
     
     app.listen(PORT, () => {
       console.log(`⚠️ Server is running on port ${PORT} (without database)`);
+      console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+      console.log('🔧 Fix database connection to enable full functionality');
     });
   }
 };
