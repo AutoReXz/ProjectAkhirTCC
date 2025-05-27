@@ -1,6 +1,6 @@
-# Language Learning Platform API Documentation
+# Dokumentasi API Platform Pembelajaran Bahasa
 
-This document provides detailed information about all API endpoints available in the Language Learning Platform.
+Dokumen ini menyediakan informasi detail tentang semua endpoint API yang tersedia dalam Platform Pembelajaran Bahasa.
 
 ## Base URL
 
@@ -8,45 +8,45 @@ This document provides detailed information about all API endpoints available in
 http://localhost:3000/api
 ```
 
-## Authentication
+## Autentikasi
 
-The API uses JWT for authentication with a combination of access tokens (short-lived) and refresh tokens (long-lived).
+API menggunakan JWT untuk autentikasi dengan kombinasi access token (berumur pendek) dan refresh token (berumur panjang).
 
 ### Headers
 
-For protected routes, include the Authorization header:
+Untuk rute yang dilindungi, sertakan header Authorization:
 
 ```
 Authorization: Bearer <access_token>
 ```
 
-## Error Handling
+## Penanganan Error
 
-All endpoints return appropriate HTTP status codes:
+Semua endpoint mengembalikan kode status HTTP yang sesuai:
 
-- `200` - Success
-- `201` - Resource created
-- `400` - Bad request (validation errors)
-- `401` - Unauthorized (missing or invalid token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Resource not found
-- `500` - Server error
+- `200` - Berhasil
+- `201` - Resource berhasil dibuat
+- `400` - Request tidak valid (error validasi)
+- `401` - Tidak terotorisasi (token hilang atau tidak valid)
+- `403` - Terlarang (izin tidak cukup)
+- `404` - Resource tidak ditemukan
+- `500` - Error server
 
-Error responses include a message:
+Response error menyertakan pesan:
 
 ```json
 {
-  "message": "Error description"
+  "message": "Deskripsi error"
 }
 ```
 
-Validation errors include an errors array:
+Error validasi menyertakan array errors:
 
 ```json
 {
   "errors": [
     {
-      "msg": "Email is required",
+      "msg": "Email diperlukan",
       "param": "email",
       "location": "body"
     }
@@ -54,15 +54,15 @@ Validation errors include an errors array:
 }
 ```
 
-## Authentication Endpoints
+## Endpoint Autentikasi
 
 ### Register
 
-Creates a new user account and returns tokens.
+Membuat akun pengguna baru dan mengembalikan token.
 
 - **URL:** `/auth/register`
 - **Method:** `POST`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Request Body:**
 
@@ -78,7 +78,7 @@ Creates a new user account and returns tokens.
 
 ```json
 {
-  "message": "User registered successfully",
+  "message": "Pengguna berhasil didaftarkan",
   "user": {
     "id": 1,
     "name": "John Doe",
@@ -92,11 +92,11 @@ Creates a new user account and returns tokens.
 
 ### Login
 
-Logs in a user and returns tokens.
+Melakukan login pengguna dan mengembalikan token.
 
 - **URL:** `/auth/login`
 - **Method:** `POST`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Request Body:**
 
@@ -124,11 +124,11 @@ Logs in a user and returns tokens.
 
 ### Refresh Token
 
-Gets a new access token using a refresh token.
+Mendapatkan access token baru menggunakan refresh token.
 
 - **URL:** `/auth/refresh`
 - **Method:** `POST`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Request Body:**
 
@@ -148,11 +148,11 @@ Gets a new access token using a refresh token.
 
 ### Logout
 
-Revokes a refresh token.
+Mencabut refresh token.
 
 - **URL:** `/auth/logout`
 - **Method:** `POST`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Request Body:**
 
@@ -166,19 +166,19 @@ Revokes a refresh token.
 
 ```json
 {
-  "message": "Logged out successfully"
+  "message": "Berhasil logout"
 }
 ```
 
-## Lessons Endpoints
+## Endpoint Pelajaran
 
-### Get All Lessons
+### Dapatkan Semua Pelajaran
 
-Retrieves all available lessons.
+Mengambil semua pelajaran yang tersedia.
 
 - **URL:** `/lessons`
 - **Method:** `GET`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Success Response (200):**
 
@@ -186,8 +186,8 @@ Retrieves all available lessons.
 [
   {
     "id": 1,
-    "title": "Basic Spanish Greetings",
-    "content": "In this lesson, you will learn...",
+    "title": "Salam Dasar Bahasa Spanyol",
+    "content": "Dalam pelajaran ini, Anda akan belajar...",
     "language": "Spanish",
     "created_at": "2025-05-01T12:00:00Z",
     "creator": {
@@ -199,21 +199,21 @@ Retrieves all available lessons.
 ]
 ```
 
-### Get Lesson By ID
+### Dapatkan Pelajaran Berdasarkan ID
 
-Retrieves a specific lesson with its details.
+Mengambil pelajaran tertentu dengan detailnya.
 
 - **URL:** `/lessons/:id`
 - **Method:** `GET`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Success Response (200):**
 
 ```json
 {
   "id": 1,
-  "title": "Basic Spanish Greetings",
-  "content": "In this lesson, you will learn...",
+  "title": "Salam Dasar Bahasa Spanyol",
+  "content": "Dalam pelajaran ini, Anda akan belajar...",
   "language": "Spanish",
   "created_at": "2025-05-01T12:00:00Z",
   "creator": {
@@ -223,20 +223,20 @@ Retrieves a specific lesson with its details.
 }
 ```
 
-### Create Lesson
+### Buat Pelajaran
 
-Creates a new lesson (admin only).
+Membuat pelajaran baru (khusus admin).
 
 - **URL:** `/lessons`
 - **Method:** `POST`
-- **Auth Required:** Yes (Admin role)
+- **Auth Required:** Ya (Role Admin)
 
 **Request Body:**
 
 ```json
 {
-  "title": "Basic Spanish Greetings",
-  "content": "In this lesson, you will learn...",
+  "title": "Salam Dasar Bahasa Spanyol",
+  "content": "Dalam pelajaran ini, Anda akan belajar...",
   "language": "Spanish"
 }
 ```
@@ -245,11 +245,11 @@ Creates a new lesson (admin only).
 
 ```json
 {
-  "message": "Lesson created successfully",
+  "message": "Pelajaran berhasil dibuat",
   "lesson": {
     "id": 1,
-    "title": "Basic Spanish Greetings",
-    "content": "In this lesson, you will learn...",
+    "title": "Salam Dasar Bahasa Spanyol",
+    "content": "Dalam pelajaran ini, Anda akan belajar...",
     "language": "Spanish",
     "created_by": 1,
     "created_at": "2025-05-01T12:00:00Z"
@@ -257,20 +257,20 @@ Creates a new lesson (admin only).
 }
 ```
 
-### Update Lesson
+### Update Pelajaran
 
-Updates an existing lesson (admin only).
+Memperbarui pelajaran yang sudah ada (khusus admin).
 
 - **URL:** `/lessons/:id`
 - **Method:** `PUT`
-- **Auth Required:** Yes (Admin role)
+- **Auth Required:** Ya (Role Admin)
 
 **Request Body:**
 
 ```json
 {
-  "title": "Updated Spanish Greetings",
-  "content": "Updated content...",
+  "title": "Salam Bahasa Spanyol yang Diperbarui",
+  "content": "Konten yang diperbarui...",
   "language": "Spanish"
 }
 ```
@@ -279,11 +279,11 @@ Updates an existing lesson (admin only).
 
 ```json
 {
-  "message": "Lesson updated successfully",
+  "message": "Pelajaran berhasil diperbarui",
   "lesson": {
     "id": 1,
-    "title": "Updated Spanish Greetings",
-    "content": "Updated content...",
+    "title": "Salam Bahasa Spanyol yang Diperbarui",
+    "content": "Konten yang diperbarui...",
     "language": "Spanish",
     "created_by": 1,
     "created_at": "2025-05-01T12:00:00Z"
@@ -291,31 +291,31 @@ Updates an existing lesson (admin only).
 }
 ```
 
-### Delete Lesson
+### Hapus Pelajaran
 
-Deletes a lesson (admin only).
+Menghapus pelajaran (khusus admin).
 
 - **URL:** `/lessons/:id`
 - **Method:** `DELETE`
-- **Auth Required:** Yes (Admin role)
+- **Auth Required:** Ya (Role Admin)
 
 **Success Response (200):**
 
 ```json
 {
-  "message": "Lesson deleted successfully"
+  "message": "Pelajaran berhasil dihapus"
 }
 ```
 
-## Quizzes Endpoints
+## Endpoint Kuis
 
-### Get Quizzes By Lesson ID
+### Dapatkan Kuis Berdasarkan ID Pelajaran
 
-Retrieves all quizzes for a specific lesson.
+Mengambil semua kuis untuk pelajaran tertentu.
 
 - **URL:** `/lessons/:lessonId/quizzes`
 - **Method:** `GET`
-- **Auth Required:** Yes
+- **Auth Required:** Ya
 
 **Success Response (200):**
 
@@ -323,7 +323,7 @@ Retrieves all quizzes for a specific lesson.
 [
   {
     "id": 1,
-    "question": "How do you say 'Hello' in Spanish?",
+    "question": "Bagaimana cara mengatakan 'Halo' dalam bahasa Spanyol?",
     "options": {
       "A": "Hola",
       "B": "Adiós",
@@ -335,19 +335,19 @@ Retrieves all quizzes for a specific lesson.
 ]
 ```
 
-### Create Quiz
+### Buat Kuis
 
-Creates a new quiz for a lesson (admin only).
+Membuat kuis baru untuk pelajaran (khusus admin).
 
 - **URL:** `/lessons/:lessonId/quizzes`
 - **Method:** `POST`
-- **Auth Required:** Yes (Admin role)
+- **Auth Required:** Ya (Role Admin)
 
 **Request Body:**
 
 ```json
 {
-  "question": "How do you say 'Hello' in Spanish?",
+  "question": "Bagaimana cara mengatakan 'Halo' dalam bahasa Spanyol?",
   "options": {
     "A": "Hola",
     "B": "Adiós",
@@ -362,11 +362,11 @@ Creates a new quiz for a lesson (admin only).
 
 ```json
 {
-  "message": "Quiz created successfully",
+  "message": "Kuis berhasil dibuat",
   "quiz": {
     "id": 1,
     "lesson_id": 1,
-    "question": "How do you say 'Hello' in Spanish?",
+    "question": "Bagaimana cara mengatakan 'Halo' dalam bahasa Spanyol?",
     "options": {
       "A": "Hola",
       "B": "Adiós",
@@ -377,13 +377,13 @@ Creates a new quiz for a lesson (admin only).
 }
 ```
 
-### Submit Quiz Answer
+### Submit Jawaban Kuis
 
-Submits an answer for a quiz and updates user progress.
+Mengirimkan jawaban untuk kuis dan memperbarui progress pengguna.
 
 - **URL:** `/quizzes/:id/submit`
 - **Method:** `POST`
-- **Auth Required:** Yes
+- **Auth Required:** Ya
 
 **Request Body:**
 
@@ -406,7 +406,7 @@ Submits an answer for a quiz and updates user progress.
 }
 ```
 
-or if incorrect:
+atau jika salah:
 
 ```json
 {
@@ -419,15 +419,15 @@ or if incorrect:
 }
 ```
 
-## Comments Endpoints
+## Endpoint Komentar
 
-### Get Comments By Lesson ID
+### Dapatkan Komentar Berdasarkan ID Pelajaran
 
-Retrieves all comments for a specific lesson.
+Mengambil semua komentar untuk pelajaran tertentu.
 
 - **URL:** `/lessons/:id/comments`
 - **Method:** `GET`
-- **Auth Required:** No
+- **Auth Required:** Tidak
 
 **Success Response (200):**
 
@@ -435,7 +435,7 @@ Retrieves all comments for a specific lesson.
 [
   {
     "id": 1,
-    "comment": "Great lesson! I learned a lot.",
+    "comment": "Pelajaran yang bagus! Saya belajar banyak.",
     "created_at": "2025-05-01T14:30:00Z",
     "user": {
       "id": 2,
@@ -446,19 +446,19 @@ Retrieves all comments for a specific lesson.
 ]
 ```
 
-### Create Comment
+### Buat Komentar
 
-Adds a new comment to a lesson.
+Menambahkan komentar baru ke pelajaran.
 
 - **URL:** `/lessons/:id/comments`
 - **Method:** `POST`
-- **Auth Required:** Yes
+- **Auth Required:** Ya
 
 **Request Body:**
 
 ```json
 {
-  "comment": "Great lesson! I learned a lot."
+  "comment": "Pelajaran yang bagus! Saya belajar banyak."
 }
 ```
 
@@ -466,10 +466,10 @@ Adds a new comment to a lesson.
 
 ```json
 {
-  "message": "Comment added successfully",
+  "message": "Komentar berhasil ditambahkan",
   "comment": {
     "id": 1,
-    "comment": "Great lesson! I learned a lot.",
+    "comment": "Pelajaran yang bagus! Saya belajar banyak.",
     "created_at": "2025-05-01T14:30:00Z",
     "user": {
       "id": 2,
@@ -479,15 +479,15 @@ Adds a new comment to a lesson.
 }
 ```
 
-## Progress Endpoints
+## Endpoint Progress
 
-### Get User Progress
+### Dapatkan Progress Pengguna
 
-Retrieves the learning progress for the current user.
+Mengambil progress pembelajaran untuk pengguna saat ini.
 
 - **URL:** `/progress`
 - **Method:** `GET`
-- **Auth Required:** Yes
+- **Auth Required:** Ya
 
 **Success Response (200):**
 
@@ -501,7 +501,7 @@ Retrieves the learning progress for the current user.
       "score": 3,
       "lesson": {
         "id": 1,
-        "title": "Basic Spanish Greetings",
+        "title": "Salam Dasar Bahasa Spanyol",
         "language": "Spanish"
       }
     },
@@ -515,78 +515,78 @@ Retrieves the learning progress for the current user.
 }
 ```
 
-## Admin Endpoints
+## Endpoint Admin
 
-Admin endpoints are available for users with `admin` role. All admin endpoints require authentication and proper authorization.
+Endpoint admin tersedia untuk pengguna dengan role `admin`. Semua endpoint admin memerlukan autentikasi dan otorisasi yang tepat.
 
-### Base URL for Admin APIs
+### Base URL untuk API Admin
 
 ```
 /api/admin
 ```
 
-### Available Admin Endpoints
+### Endpoint Admin yang Tersedia
 
-#### Dashboard Statistics
-- `GET /api/admin/stats` - Get dashboard statistics
+#### Statistik Dashboard
+- `GET /api/admin/stats` - Dapatkan statistik dashboard
 
-#### User Management
-- `GET /api/admin/users` - List all users with pagination
-- `GET /api/admin/users/:id` - Get user by ID
-- `PUT /api/admin/users/:id` - Update user
-- `DELETE /api/admin/users/:id` - Deactivate user (soft delete)
+#### Manajemen Pengguna
+- `GET /api/admin/users` - Daftar semua pengguna dengan pagination
+- `GET /api/admin/users/:id` - Dapatkan pengguna berdasarkan ID
+- `PUT /api/admin/users/:id` - Perbarui pengguna
+- `DELETE /api/admin/users/:id` - Nonaktifkan pengguna (soft delete)
 
-#### Quiz Management
-- `GET /api/admin/quizzes` - List all quizzes with pagination
-- `POST /api/admin/quizzes` - Create new quiz
-- `PUT /api/admin/quizzes/:id` - Update quiz
-- `DELETE /api/admin/quizzes/:id` - Delete quiz
+#### Manajemen Kuis
+- `GET /api/admin/quizzes` - Daftar semua kuis dengan pagination
+- `POST /api/admin/quizzes` - Buat kuis baru
+- `PUT /api/admin/quizzes/:id` - Perbarui kuis
+- `DELETE /api/admin/quizzes/:id` - Hapus kuis
 
-#### Comment Management
-- `GET /api/admin/comments` - List all comments with pagination
-- `PUT /api/admin/comments/:id` - Update comment
-- `DELETE /api/admin/comments/:id` - Delete comment
+#### Manajemen Komentar
+- `GET /api/admin/comments` - Daftar semua komentar dengan pagination
+- `PUT /api/admin/comments/:id` - Perbarui komentar
+- `DELETE /api/admin/comments/:id` - Hapus komentar
 
-#### Lesson Management
-- `GET /api/admin/lessons` - List all lessons with pagination
-- `POST /api/admin/lessons` - Create new lesson
-- `PUT /api/admin/lessons/:id` - Update lesson
-- `DELETE /api/admin/lessons/:id` - Delete lesson (cascade delete)
+#### Manajemen Pelajaran
+- `GET /api/admin/lessons` - Daftar semua pelajaran dengan pagination
+- `POST /api/admin/lessons` - Buat pelajaran baru
+- `PUT /api/admin/lessons/:id` - Perbarui pelajaran
+- `DELETE /api/admin/lessons/:id` - Hapus pelajaran (cascade delete)
 
-### Admin Authentication
+### Autentikasi Admin
 
-Admin endpoints require:
-- Valid JWT access token in Authorization header
-- User must have `admin` role
+Endpoint admin memerlukan:
+- Token akses JWT yang valid di header Authorization
+- Pengguna harus memiliki role `admin`
 
-**Example:**
+**Contoh:**
 ```bash
 curl -X GET http://localhost:3000/api/admin/stats \
   -H "Authorization: Bearer <admin_access_token>"
 ```
 
-### Admin Response Format
+### Format Response Admin
 
-Admin list endpoints return arrays directly with pagination information in response headers:
+Endpoint list admin mengembalikan array secara langsung dengan informasi pagination di header response:
 
 **Response Headers:**
-- `X-Total-Count`: Total number of items
-- `X-Page`: Current page number  
-- `X-Limit`: Items per page
-- `X-Total-Pages`: Total number of pages
+- `X-Total-Count`: Total jumlah item
+- `X-Page`: Nomor halaman saat ini  
+- `X-Limit`: Item per halaman
+- `X-Total-Pages`: Total jumlah halaman
 
-**Example Response:**
+**Contoh Response:**
 ```json
 [
   {
     "id": 1,
-    "name": "User 1",
-    // ... other fields
+    "name": "Pengguna 1",
+    // ... field lainnya
   },
   {
     "id": 2,
-    "name": "User 2", 
-    // ... other fields
+    "name": "Pengguna 2", 
+    // ... field lainnya
   }
 ]
 ```
