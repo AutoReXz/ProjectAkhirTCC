@@ -5,7 +5,7 @@ Dokumen ini menyediakan informasi detail tentang semua endpoint API yang tersedi
 ## Base URL
 
 ```
-http://localhost:3000/api
+https://bahasa-app-backend-263444552508.us-central1.run.app/api
 ```
 
 ## Autentikasi
@@ -561,7 +561,7 @@ Endpoint admin memerlukan:
 
 **Contoh:**
 ```bash
-curl -X GET http://localhost:3000/api/admin/stats \
+curl -X GET https://bahasa-app-backend-263444552508.us-central1.run.app/api/admin/stats \
   -H "Authorization: Bearer <admin_access_token>"
 ```
 

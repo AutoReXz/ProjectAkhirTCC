@@ -30,41 +30,38 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/$PROJECT_ID/bahasa-app-backend"]
 
-  # 2.5. Test database connection and run migrations
-  - name: "gcr.io/cloud-builders/docker"
+  # 2.5. Verify .env file for Cloud Run deployment
+  - name: "gcr.io/cloud-builders/gcloud"
     entrypoint: "sh"
     args:
       - "-c"
       - |
-        echo "=== Testing database connection ==="
-        docker run --rm \
-        --env-file .env \
-        gcr.io/$PROJECT_ID/bahasa-app-backend \
-        npm run db:check || echo "Database connection failed, but continuing..."
-        
-        echo "=== Skip database operations for now ==="
-        echo "Database migrations will be handled during application startup"
-        echo "This is a workaround for Cloud Build IP access restrictions"
+        echo "=== Preparing environment variables for Cloud Run ==="
+        if [ -f .env ]; then
+          echo "✅ .env file found for deployment"
+          echo "Environment variables that will be deployed:"
+          grep -E '^[A-Z_]' .env | sed 's/=.*/=[HIDDEN]/' || echo "No environment variables found"
+        else
+          echo "❌ .env file not found for deployment"
+          exit 1
+        fi
     dir: "be"
 
-  # 3. Deploy ke Cloud Run
+  # 3. Deploy ke Cloud Run dengan environment variables
   - name: "gcr.io/cloud-builders/gcloud"
-    entrypoint: gcloud
+    entrypoint: "sh"
     args:
-      [
-        "run",
-        "deploy",
-        "bahasa-app-backend",
-        "--image",
-        "gcr.io/$PROJECT_ID/bahasa-app-backend",
-        "--timeout",
-        "1000s",
-        "--port",
-        "3000",
-        "--region",
-        "us-central1",
-        "--allow-unauthenticated",
-      ]
+      - "-c"
+      - |
+        gcloud run deploy bahasa-app-backend \
+        --image gcr.io/$PROJECT_ID/bahasa-app-backend \
+        --timeout 1000s \
+        --port 3000 \
+        --region us-central1 \
+        --allow-unauthenticated \
+        --set-env-vars NODE_ENV=production \
+        --env-vars-file .env
+    dir: "be"
 
 # Log hanya akan disimpan di Google Cloud Logging
 # Log tidak akan disimpan di Google Cloud Storage (butuh hak akses).
