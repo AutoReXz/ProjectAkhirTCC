@@ -1,6 +1,6 @@
 // Konfigurasi API untuk Platform Belajar Bahasa
 const API_CONFIG = {
-    BASE_URL: "https://bahasa-app-backend-263444552508.us-central1.run.app",
+    BASE_URL: "https://bahasa-app-backend-263444552508.us-central1.run.app/api",
     // Ganti dengan URL backend produksi saat deploy
     // BASE_URL: "https://<URL_BACKEND_PRODUKSI>/api",
     
