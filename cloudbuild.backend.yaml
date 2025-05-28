@@ -40,10 +40,11 @@ steps:
         if [ -f .env ]; then
           echo "✅ .env file found for deployment"
           echo "Environment variables that will be deployed:"
-          # Show non-empty, non-comment lines
-          grep -E '^[A-Z_]+=' .env | sed 's/=.*/=[HIDDEN]/' || echo "No environment variables found"
+          # Show non-empty, non-comment lines, excluding PORT
+          grep -E '^[A-Z_]+=' .env | grep -v '^PORT=' | sed 's/=.*/=[HIDDEN]/' || echo "No environment variables found"
           echo ""
-          echo "Total environment variables: $(grep -E '^[A-Z_]+=' .env | wc -l)"
+          echo "Total environment variables: $(grep -E '^[A-Z_]+=' .env | grep -v '^PORT=' | wc -l)"
+          echo "Note: PORT is excluded as it's automatically set by Cloud Run"
         else
           echo "❌ .env file not found for deployment"
           exit 1
@@ -73,7 +74,8 @@ steps:
               value=$$(echo "$$line" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')
               
               # Only process if key is not empty and contains valid characters
-              if [ -n "$$key" ] && echo "$$key" | grep -q '^[A-Z_][A-Z0-9_]*$$'; then
+              # Skip reserved Cloud Run environment variables
+              if [ -n "$$key" ] && echo "$$key" | grep -q '^[A-Z_][A-Z0-9_]*$$' && [ "$$key" != "PORT" ]; then
                 # Remove surrounding quotes if present
                 clean_value=$$(echo "$$value" | sed 's/^"//;s/"$$//' | sed "s/^'//;s/'$$//")
                 
@@ -83,6 +85,8 @@ steps:
                   ENV_VARS_LIST="$$ENV_VARS_LIST,$$key=$$clean_value"
                 fi
                 echo "Added: $$key=[HIDDEN]"
+              elif [ "$$key" = "PORT" ]; then
+                echo "Skipped reserved variable: $$key (Cloud Run sets this automatically)"
               else
                 echo "Skipped invalid key: $$key"
               fi
