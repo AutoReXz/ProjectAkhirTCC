@@ -60,15 +60,38 @@ steps:
         
         # Read .env file and build the env vars string
         ENV_VARS_LIST=""
-        while IFS='=' read -r key value || [ -n "$$key" ]; do
-          # Skip empty lines and comments
-          if [ -n "$$key" ] && [ "$${key#'#'}" = "$$key" ]; then
-            # Remove surrounding quotes if present
-            clean_value=$$(echo "$$value" | sed 's/^"//;s/"$$//' | tr -d '\r')
-            if [ -z "$$ENV_VARS_LIST" ]; then
-              ENV_VARS_LIST="$$key=$$clean_value"
+        while IFS= read -r line || [ -n "$$line" ]; do
+          # Remove carriage return and trim whitespace
+          line=$$(echo "$$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')
+          
+          # Skip empty lines and comments (both # and //)
+          if [ -n "$$line" ] && [ "$${line#'#'}" = "$$line" ] && [ "$${line#'//'}" = "$$line" ]; then
+            # Check if line contains '='
+            if echo "$$line" | grep -q '='; then
+              # Extract key and value
+              key=$$(echo "$$line" | cut -d'=' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')
+              value=$$(echo "$$line" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')
+              
+              # Only process if key is not empty and contains valid characters
+              if [ -n "$$key" ] && echo "$$key" | grep -q '^[A-Z_][A-Z0-9_]*$$'; then
+                # Remove surrounding quotes if present
+                clean_value=$$(echo "$$value" | sed 's/^"//;s/"$$//' | sed "s/^'//;s/'$$//")
+                
+                if [ -z "$$ENV_VARS_LIST" ]; then
+                  ENV_VARS_LIST="$$key=$$clean_value"
+                else
+                  ENV_VARS_LIST="$$ENV_VARS_LIST,$$key=$$clean_value"
+                fi
+                echo "Added: $$key=[HIDDEN]"
+              else
+                echo "Skipped invalid key: $$key"
+              fi
             else
-              ENV_VARS_LIST="$$ENV_VARS_LIST,$$key=$$clean_value"
+              echo "Skipped line without '=': $$line"
+            fi
+          else
+            if [ -n "$$line" ]; then
+              echo "Skipped comment/empty: $$line"
             fi
           fi
         done < .env
@@ -77,17 +100,24 @@ steps:
         ENV_VARS_LIST="NODE_ENV=production,$$ENV_VARS_LIST"
         
         echo "=== Deploying to Cloud Run ==="
-        echo "Environment variables to be set: $$(echo "$$ENV_VARS_LIST" | sed 's/=[^,]*=[^,]*/=[HIDDEN]/g')"
+        echo "Total environment variables to deploy: $$(echo "$$ENV_VARS_LIST" | tr ',' '\n' | wc -l)"
+        echo "Environment variables preview:"
+        echo "$$ENV_VARS_LIST" | tr ',' '\n' | sed 's/=.*/=[HIDDEN]/' | head -5
+        echo "..."
         
-        gcloud run deploy bahasa-app-backend \
+        # Deploy with error checking
+        if gcloud run deploy bahasa-app-backend \
         --image gcr.io/$PROJECT_ID/bahasa-app-backend \
         --timeout 1000s \
         --port 3000 \
         --region us-central1 \
         --allow-unauthenticated \
-        --set-env-vars "$$ENV_VARS_LIST"
-        
-        echo "✅ Deployment completed"
+        --set-env-vars "$$ENV_VARS_LIST"; then
+          echo "✅ Deployment completed successfully"
+        else
+          echo "❌ Deployment failed"
+          exit 1
+        fi
     dir: "be"
 
 # Log hanya akan disimpan di Google Cloud Logging
