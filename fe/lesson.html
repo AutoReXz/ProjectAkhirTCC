@@ -72,12 +72,9 @@
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js"></script>
-    <script src="assets/js/ui.js"></script>
-    <script>
+    <script src="assets/js/ui.js"></script>    <script>
         // Variable untuk menyimpan ID lesson
         let lessonId;
-        let currentQuiz = null;
-        let selectedAnswer = null;
         
         // Inisialisasi halaman
         document.addEventListener('DOMContentLoaded', async () => {
@@ -196,8 +193,7 @@
                 showError('commentAlert', `Gagal menambahkan komentar: ${error.message || 'Terjadi kesalahan'}`);
             }
         });
-        
-        // Load quizzes
+          // Load quizzes
         async function loadQuizzes() {
             try {
                 const quizzes = await LessonService.getLessonQuizzes(lessonId);
@@ -206,9 +202,8 @@
                     // Tampilkan container quiz
                     document.getElementById('quizContainer').style.display = 'block';
                     
-                    // Ambil quiz pertama
-                    currentQuiz = quizzes[0];
-                    displayQuiz(currentQuiz);
+                    // Tampilkan semua quiz
+                    displayQuizzes(quizzes);
                 }
             } catch (error) {
                 console.error('Failed to load quizzes:', error);
@@ -221,14 +216,47 @@
                         </div>
                     `;
                 }
-            }        }
-        
-        // Display quiz
-        function displayQuiz(quiz) {
+            }
+        }
+          // Display multiple quizzes
+        function displayQuizzes(quizzes) {
             const quizContentElem = document.getElementById('quizContent');
             
-            if (!quiz) {
+            if (!quizzes || quizzes.length === 0) {
                 quizContentElem.innerHTML = '<p>Tidak ada kuis tersedia untuk materi ini.</p>';
+                return;
+            }
+            
+            let quizzesHtml = '';
+            
+            // Generate HTML untuk setiap quiz
+            quizzes.forEach((quiz, index) => {
+                const quizId = `quiz-${quiz.id}`;
+                quizzesHtml += `
+                    <div class="quiz-item" id="${quizId}" data-quiz-index="${index}">
+                        <h3 class="quiz-title">Pertanyaan ${index + 1}</h3>
+                        <div class="quiz-content">
+                            <!-- Content will be added by displayQuiz function -->
+                        </div>
+                    </div>
+                    ${index < quizzes.length - 1 ? '<hr style="margin: 20px 0;" />' : ''}
+                `;
+            });
+            
+            quizContentElem.innerHTML = quizzesHtml;
+            
+            // Render setiap quiz
+            quizzes.forEach((quiz, index) => {
+                const quizId = `quiz-${quiz.id}`;
+                const quizContentElem = document.querySelector(`#${quizId} .quiz-content`);
+                displayQuiz(quiz, quizContentElem);
+            });
+        }
+        
+        // Display single quiz
+        function displayQuiz(quiz, containerElem) {
+            if (!quiz || !containerElem) {
+                containerElem.innerHTML = '<p>Tidak ada kuis tersedia.</p>';
                 return;
             }
             
@@ -241,7 +269,7 @@
                     quizOptions = JSON.parse(quiz.options);
                 } catch (e) {
                     console.error('Error parsing quiz options:', e);
-                    quizContentElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                    containerElem.innerHTML = '<p>Format kuis tidak valid.</p>';
                     return;
                 }
             } else {
@@ -250,82 +278,92 @@
             
             // Pastikan quizOptions adalah object
             if (!quizOptions || typeof quizOptions !== 'object') {
-                quizContentElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                containerElem.innerHTML = '<p>Format kuis tidak valid.</p>';
                 return;
             }
             
             // Buat HTML untuk setiap opsi
             for (const [key, value] of Object.entries(quizOptions)) {
                 optionsHtml += `
-                    <li class="quiz-option" data-option="${key}">
+                    <li class="quiz-option" data-option="${key}" data-quiz-id="${quiz.id}">
                         <strong>${key}:</strong> ${value}
                     </li>
                 `;
             }
             
-            quizContentElem.innerHTML = `
+            containerElem.innerHTML = `
                 <div class="quiz-question">${quiz.question}</div>
-                <ul class="quiz-options" id="quizOptions">
+                <ul class="quiz-options quiz-options-${quiz.id}">
                     ${optionsHtml}
                 </ul>
-                <div id="quizResult" style="margin-top: 15px;"></div>
-                <button id="submitQuiz" class="btn" style="margin-top: 15px;" disabled>Kirim Jawaban</button>
+                <div class="quiz-result" id="quiz-result-${quiz.id}" style="margin-top: 15px;"></div>
+                <button class="btn submit-quiz-btn" id="submit-quiz-${quiz.id}" data-quiz-id="${quiz.id}" style="margin-top: 15px;" disabled>Kirim Jawaban</button>
             `;
             
             // Tambahkan event listener untuk opsi
-            const optionElements = document.querySelectorAll('.quiz-option');
+            const optionElements = containerElem.querySelectorAll('.quiz-option');
             optionElements.forEach(option => {
                 option.addEventListener('click', () => {
-                    // Hapus selected class dari semua opsi
-                    optionElements.forEach(opt => opt.classList.remove('selected'));
+                    const quizId = option.getAttribute('data-quiz-id');
+                    const quizOptions = document.querySelectorAll(`.quiz-option[data-quiz-id="${quizId}"]`);
+                    
+                    // Hapus selected class dari semua opsi quiz yang sama
+                    quizOptions.forEach(opt => opt.classList.remove('selected'));
                     
                     // Tambahkan selected class ke opsi yang dipilih
                     option.classList.add('selected');
                     
-                    // Simpan jawaban
-                    selectedAnswer = option.dataset.option;
+                    // Enable submit button untuk quiz ini
+                    const submitBtn = document.getElementById(`submit-quiz-${quizId}`);
+                    submitBtn.disabled = false;
                     
-                    // Enable submit button
-                    document.getElementById('submitQuiz').disabled = false;
+                    // Simpan jawaban ke data-selected-answer attribute di button
+                    submitBtn.setAttribute('data-selected-answer', option.getAttribute('data-option'));
                 });
             });
             
-            // Tambahkan event listener untuk submit
-            document.getElementById('submitQuiz').addEventListener('click', submitQuizAnswer);
+            // Tambahkan event listener untuk submit button
+            const submitBtn = containerElem.querySelector('.submit-quiz-btn');
+            submitBtn.addEventListener('click', async (event) => {
+                const quizId = event.target.getAttribute('data-quiz-id');
+                const selectedAnswer = event.target.getAttribute('data-selected-answer');
+                
+                await submitQuizAnswer(quizId, selectedAnswer, event.target);
+            });
         }
-        
-        // Submit quiz answer
-        async function submitQuizAnswer() {
-            if (!currentQuiz || !selectedAnswer) return;
+          // Submit quiz answer
+        async function submitQuizAnswer(quizId, selectedAnswer, submitButton) {
+            if (!quizId || !selectedAnswer) return;
             
             try {
                 // Disable submit button
-                document.getElementById('submitQuiz').disabled = true;
+                submitButton.disabled = true;
                 
                 // Submit jawaban
-                const result = await QuizService.submitQuizAnswer(currentQuiz.id, selectedAnswer);
+                const result = await QuizService.submitQuizAnswer(quizId, selectedAnswer);
                 
                 // Tampilkan hasil
-                displayQuizResult(result);
+                displayQuizResult(result, quizId, selectedAnswer);
             } catch (error) {
-                document.getElementById('quizResult').innerHTML = `
+                document.getElementById(`quiz-result-${quizId}`).innerHTML = `
                     <div class="alert alert-danger">
                         Gagal mengirim jawaban: ${error.message || 'Terjadi kesalahan'}
                     </div>
                 `;
                 
                 // Enable submit button
-                document.getElementById('submitQuiz').disabled = false;
-            }        }
+                submitButton.disabled = false;
+            }
+        }
         
         // Display quiz result
-        function displayQuizResult(result) {
-            const quizResultElem = document.getElementById('quizResult');
-            const optionElements = document.querySelectorAll('.quiz-option');
+        function displayQuizResult(result, quizId, selectedAnswer) {
+            const quizResultElem = document.getElementById(`quiz-result-${quizId}`);
+            const optionElements = document.querySelectorAll(`.quiz-option[data-quiz-id="${quizId}"]`);
             
             // Highlight jawaban
             optionElements.forEach(option => {
-                const optionValue = option.dataset.option;
+                const optionValue = option.getAttribute('data-option');
                 
                 // Reset classes
                 option.classList.remove('correct', 'incorrect');
