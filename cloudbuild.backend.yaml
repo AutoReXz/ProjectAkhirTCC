@@ -57,19 +57,35 @@ steps:
       - "-c"
       - |
         echo "=== Loading environment variables from .env ==="
-        # Source the .env file to load variables
-        set -a  # automatically export all variables
-        source .env
-        set +a  # stop automatically exporting
+        
+        # Read .env file and build the env vars string
+        ENV_VARS_LIST=""
+        while IFS='=' read -r key value || [ -n "$$key" ]; do
+          # Skip empty lines and comments
+          if [ -n "$$key" ] && [ "$${key#'#'}" = "$$key" ]; then
+            # Remove surrounding quotes if present
+            clean_value=$$(echo "$$value" | sed 's/^"//;s/"$$//' | tr -d '\r')
+            if [ -z "$$ENV_VARS_LIST" ]; then
+              ENV_VARS_LIST="$$key=$$clean_value"
+            else
+              ENV_VARS_LIST="$$ENV_VARS_LIST,$$key=$$clean_value"
+            fi
+          fi
+        done < .env
+        
+        # Add NODE_ENV to the list
+        ENV_VARS_LIST="NODE_ENV=production,$$ENV_VARS_LIST"
         
         echo "=== Deploying to Cloud Run ==="
+        echo "Environment variables to be set: $$(echo "$$ENV_VARS_LIST" | sed 's/=[^,]*=[^,]*/=[HIDDEN]/g')"
+        
         gcloud run deploy bahasa-app-backend \
         --image gcr.io/$PROJECT_ID/bahasa-app-backend \
         --timeout 1000s \
         --port 3000 \
         --region us-central1 \
         --allow-unauthenticated \
-        --set-env-vars "NODE_ENV=production,PORT=$PORT,CORS_ORIGIN=$CORS_ORIGIN,DB_HOST=$DB_HOST,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_DIALECT=$DB_DIALECT,ACCESS_TOKEN_SECRET=$ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET=$REFRESH_TOKEN_SECRET,ACCESS_TOKEN_EXPIRY=$ACCESS_TOKEN_EXPIRY,REFRESH_TOKEN_EXPIRY=$REFRESH_TOKEN_EXPIRY"
+        --set-env-vars "$$ENV_VARS_LIST"
         
         echo "✅ Deployment completed"
     dir: "be"
