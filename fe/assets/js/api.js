@@ -1,13 +1,43 @@
 // Utilitas untuk menangani API dan autentikasi
 
+// Cookie utility functions
+const CookieManager = {
+    // Set cookie dengan opsi keamanan
+    setCookie: (name, value, days = 7) => {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+        
+        // HttpOnly tidak bisa diset dari JavaScript, tapi kita set SameSite dan Secure
+        document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Strict; Secure=${location.protocol === 'https:'}`;
+    },
+    
+    // Get cookie
+    getCookie: (name) => {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    },
+    
+    // Delete cookie
+    deleteCookie: (name) => {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict`;
+    }
+};
+
 // Token handler
 const TokenManager = {
-    // Simpan token ke localStorage
-    saveTokens: (accessToken, refreshToken) => {
+    // Simpan token - access token di localStorage saja
+    // Refresh token dihandle otomatis oleh HttpOnly cookie dari backend
+    saveTokens: (accessToken) => {
+        // Access token disimpan di localStorage untuk akses cepat
         localStorage.setItem('accessToken', accessToken);
-        if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-        }
+        
+        // Refresh token tidak perlu disimpan manual karena sudah di HttpOnly cookie
     },
     
     // Ambil access token
@@ -15,15 +45,17 @@ const TokenManager = {
         return localStorage.getItem('accessToken');
     },
     
-    // Ambil refresh token
+    // Refresh token tidak bisa diakses dari JavaScript (HttpOnly)
     getRefreshToken: () => {
-        return localStorage.getItem('refreshToken');
+        // HttpOnly cookie tidak bisa diakses dari JavaScript
+        // Browser akan otomatis mengirim cookie ini ke server
+        return null;
     },
     
     // Hapus token (logout)
     clearTokens: () => {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        // HttpOnly cookie akan dihapus oleh server saat logout
     },
     
     // Simpan data user
@@ -40,11 +72,14 @@ const TokenManager = {
     // Hapus data user
     clearUser: () => {
         localStorage.removeItem('user');
-    },
-    
-    // Cek apakah user sudah login
+    },      // Cek apakah user sudah login - cek access token saja
+    // Refresh token ada di HttpOnly cookie yang otomatis dikirim browser
     isLoggedIn: () => {
-        return !!localStorage.getItem('accessToken');
+        const accessToken = localStorage.getItem('accessToken');
+        
+        // User dianggap login jika ada access token
+        // Jika access token expired, sistem akan otomatis coba refresh
+        return !!accessToken;
     }
 };
 
@@ -53,7 +88,17 @@ const ApiService = {
     // Metode untuk panggil API tanpa authentication
     async fetch(endpoint, options = {}) {
         try {
-            const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, options);
+            // Tambahkan credentials untuk memastikan cookie dikirim
+            const defaultOptions = {
+                credentials: 'include' // Penting untuk HttpOnly cookies
+            };
+            
+            const mergedOptions = {
+                ...defaultOptions,
+                ...options
+            };
+            
+            const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, mergedOptions);
             const data = await response.json();
             
             if (!response.ok) {
@@ -63,15 +108,14 @@ const ApiService = {
                     errors: data.errors
                 };
             }
-            
+
             return data;
         } catch (error) {
             console.error('API Error:', error);
             throw error;
         }
     },
-    
-    // Metode untuk panggil API dengan authentication
+      // Metode untuk panggil API dengan authentication
     async fetchAuth(endpoint, options = {}) {
         const accessToken = TokenManager.getAccessToken();
         
@@ -83,7 +127,8 @@ const ApiService = {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
-            }
+            },
+            credentials: 'include' // Penting untuk HttpOnly cookies
         };
         
         const mergedOptions = {
@@ -130,20 +175,15 @@ const ApiService = {
             throw error;
         }
     },
-    
-    // Method untuk refresh token
+      // Method untuk refresh token
     async refreshToken() {
-        const refreshToken = TokenManager.getRefreshToken();
-        
-        if (!refreshToken) {
-            return false;
-        }
-        
         try {
+            // Tidak perlu kirim refreshToken di body karena sudah di HttpOnly cookie
+            // Browser akan otomatis mengirim cookie dengan credentials: 'include'
             const response = await this.fetch(API_CONFIG.AUTH.REFRESH, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refreshToken })
+                credentials: 'include' // Penting: sertakan cookies
             });
             
             if (response.accessToken) {
@@ -160,17 +200,37 @@ const ApiService = {
 };
 
 // Auth service
-const AuthService = {
-    // Register user baru
+const AuthService = {    // Initialize authentication - cek dan refresh token jika perlu
+    async initAuth() {
+        const accessToken = TokenManager.getAccessToken();
+        
+        // Jika tidak ada access token, coba refresh dari HttpOnly cookie
+        if (!accessToken) {
+            try {
+                const refreshed = await ApiService.refreshToken();
+                if (refreshed) {
+                    console.log('Token berhasil di-refresh saat inisialisasi');
+                } else {
+                    console.log('Tidak ada session yang valid');
+                }
+            } catch (error) {
+                console.error('Error saat refresh token:', error);
+                TokenManager.clearTokens();
+                TokenManager.clearUser();
+            }
+        }
+    },    // Register user baru
     async register(name, email, password) {
         try {
             const response = await ApiService.fetch(API_CONFIG.AUTH.REGISTER, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password }),
+                credentials: 'include' // Untuk menerima HttpOnly cookie
             });
             
-            TokenManager.saveTokens(response.accessToken, response.refreshToken);
+            // Hanya simpan accessToken, refreshToken sudah di HttpOnly cookie
+            TokenManager.saveTokens(response.accessToken);
             TokenManager.saveUser(response.user);
             return response;
         } catch (error) {
@@ -184,29 +244,27 @@ const AuthService = {
             const response = await ApiService.fetch(API_CONFIG.AUTH.LOGIN, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'include' // Untuk menerima HttpOnly cookie
             });
             
-            TokenManager.saveTokens(response.accessToken, response.refreshToken);
+            // Hanya simpan accessToken, refreshToken sudah di HttpOnly cookie
+            TokenManager.saveTokens(response.accessToken);
             TokenManager.saveUser(response.user);
             return response;
         } catch (error) {
             throw error;
         }
     },
-    
-    // Logout user
+      // Logout user
     async logout() {
         try {
-            const refreshToken = TokenManager.getRefreshToken();
-            
-            if (refreshToken) {
-                await ApiService.fetch(API_CONFIG.AUTH.LOGOUT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ refreshToken })
-                });
-            }
+            // Tidak perlu kirim refreshToken di body, backend akan baca dari cookie
+            await ApiService.fetch(API_CONFIG.AUTH.LOGOUT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include' // Untuk mengirim HttpOnly cookie
+            });
         } catch (error) {
             console.error('Logout Error:', error);
         } finally {

@@ -78,10 +78,10 @@ async function loadDashboardStats() {
     try {
         // Load all data to get counts
         const [usersData, lessonsData, quizzesData, commentsData] = await Promise.all([
-            AdminService.getAllUsers(),
-            LessonService.getAllLessons(),
-            AdminService.getAllQuizzes(),
-            AdminService.getAllComments()
+            AdminService.getUsersWithFilters({ limit: 1000 }),
+            AdminService.getLessonsWithFilters({ limit: 1000 }),
+            AdminService.getQuizzesWithFilters({ limit: 1000 }),
+            AdminService.getCommentsWithFilters({ limit: 1000 })
         ]);
         
         document.getElementById('totalUsers').textContent = usersData.length;
@@ -141,7 +141,8 @@ async function loadTabContent(tabName) {
 async function loadUsers() {
     try {
         showLoading('usersContent');
-        users = await AdminService.getAllUsers();
+        // Load all users without pagination limit for client-side handling
+        users = await AdminService.getUsersWithFilters({ limit: 1000 });
         displayUsers(users);
     } catch (error) {
         document.getElementById('usersContent').innerHTML = `
@@ -232,9 +233,6 @@ function filterUsers() {
         return matchSearch && matchRole;
     });
     
-    // Reset to first page
-    currentPage.users = 1;
-    
     displayUsers(filteredUsers);
 }
 
@@ -242,7 +240,8 @@ function filterUsers() {
 async function loadLessons() {
     try {
         showLoading('lessonsContent');
-        lessons = await LessonService.getAllLessons();
+        // Load all lessons without pagination limit for client-side handling
+        lessons = await AdminService.getLessonsWithFilters({ limit: 1000 });
         displayLessons(lessons);
     } catch (error) {
         document.getElementById('lessonsContent').innerHTML = `
@@ -335,9 +334,6 @@ function filterLessons() {
         return matchSearch && matchLanguage;
     });
     
-    // Reset to first page
-    currentPage.lessons = 1;
-    
     displayLessons(filteredLessons);
 }
 
@@ -345,7 +341,8 @@ function filterLessons() {
 async function loadQuizzes() {
     try {
         showLoading('quizzesContent');
-        quizzes = await AdminService.getAllQuizzes();
+        // Load all quizzes without pagination limit for client-side handling
+        quizzes = await AdminService.getQuizzesWithFilters({ limit: 1000 });
         displayQuizzes(quizzes);
     } catch (error) {
         document.getElementById('quizzesContent').innerHTML = `
@@ -429,9 +426,6 @@ function filterQuizzes() {
                (quiz.lesson?.title || '').toLowerCase().includes(searchTerm);
     });
     
-    // Reset to first page
-    currentPage.quizzes = 1;
-    
     displayQuizzes(filteredQuizzes);
 }
 
@@ -439,7 +433,8 @@ function filterQuizzes() {
 async function loadComments() {
     try {
         showLoading('commentsContent');
-        comments = await AdminService.getAllComments();
+        // Load all comments without pagination limit for client-side handling
+        comments = await AdminService.getCommentsWithFilters({ limit: 1000 });
         displayComments(comments);
     } catch (error) {
         document.getElementById('commentsContent').innerHTML = `
@@ -525,9 +520,6 @@ function filterComments() {
                (comment.lesson?.title || '').toLowerCase().includes(searchTerm);
     });
     
-    // Reset to first page
-    currentPage.comments = 1;
-    
     displayComments(filteredComments);
 }
 
@@ -552,9 +544,9 @@ async function showCreateQuizModal() {
     document.getElementById('quizForm').reset();
     document.getElementById('quizId').value = '';
     
-    // Load lessons for dropdown
+    // Load lessons for dropdown using admin service for consistency
     try {
-        const lessons = await LessonService.getAllLessons();
+        const lessons = await AdminService.getLessonsWithFilters({ limit: 1000 });
         const lessonSelect = document.getElementById('quizLessonId');
         lessonSelect.innerHTML = '<option value="">Pilih Materi</option>' +
             lessons.map(lesson => `<option value="${lesson.id}">${lesson.title}</option>`).join('');
@@ -619,10 +611,9 @@ async function editQuiz(quizId) {
     document.getElementById('quizOptionC').value = options.C || '';
     document.getElementById('quizOptionD').value = options.D || '';
     document.getElementById('quizAnswer').value = quiz.answer;
-    
-    // Load lessons for dropdown
+      // Load lessons for dropdown using admin service for consistency
     try {
-        const lessons = await LessonService.getAllLessons();
+        const lessons = await AdminService.getLessonsWithFilters({ limit: 1000 });
         const lessonSelect = document.getElementById('quizLessonId');
         lessonSelect.innerHTML = '<option value="">Pilih Materi</option>' +
             lessons.map(lesson => `<option value="${lesson.id}"${lesson.id === quiz.lesson_id ? ' selected' : ''}>${lesson.title}</option>`).join('');
@@ -702,10 +693,9 @@ function setupFormHandlers() {
             email: document.getElementById('userEmail').value.trim(),
             role: document.getElementById('userRole').value
         };
-        
-        const password = document.getElementById('userPassword').value;
-        if (password) {
-            userData.password = password;
+          const password = document.getElementById('userPassword').value;
+        if (password && password.trim() !== '') {
+            userData.password = password.trim();
         }
         
         // Validate form data
@@ -817,6 +807,14 @@ window.onclick = function(event) {
 }
 
 // ========== UTILITY FUNCTIONS ==========
+
+// Show loading state
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = '<div class="loading-state"><p>Memuat data...</p></div>';
+    }
+}
 
 // Format date helper specifically for admin
 function formatDate(dateString) {

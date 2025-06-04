@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Materi - BelajarBahasa</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Header dan Navigasi -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="nav-brand">BelajarBahasa</a>
+                <ul class="nav-menu" id="navAuthItems">
+                    <!-- Diisi dinamis oleh JS -->
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Quiz Content -->
+    <section class="container" style="margin-top: 30px;">
+        <div id="quizAlert"></div>
+        
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" style="margin-bottom: 20px;">
+            <a href="index.html">Beranda</a> 
+            <span class="breadcrumb-separator">›</span>
+            <a href="#" id="lessonBreadcrumb">Materi</a>
+            <span class="breadcrumb-separator">›</span>
+            <span>Kuis</span>
+        </nav>
+        
+        <!-- Lesson Info -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div id="lessonInfo">
+                <!-- Loading placeholder -->
+                <p>Memuat informasi materi...</p>
+            </div>
+        </div>
+        
+        <!-- Quiz Container -->
+        <div id="quizContainer">
+            <div class="card">
+                <h2 class="card-title">Kuis Pembelajaran</h2>
+                <div id="quizContent">
+                    <!-- Loading placeholder -->
+                    <p>Memuat kuis...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Actions -->
+        <div class="quiz-navigation" style="margin-top: 30px; text-align: center;">
+            <a href="#" id="backToLesson" class="btn btn-secondary" style="margin-right: 10px;">
+                ← Kembali ke Materi
+            </a>
+            <a href="progress.html" class="btn" id="viewProgress" style="display: none;">
+                Lihat Progress Belajar →
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="container" style="margin-top: 50px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p>&copy; 2025 BelajarBahasa - Platform Pembelajaran Bahasa Online</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        // Variable untuk menyimpan ID lesson
+        let lessonId;
+        let currentLesson;
+        let currentQuizzes = [];
+        let completedQuizzes = 0;
+        
+        // Inisialisasi halaman
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Update navigasi
+            updateNavigation();
+            
+            // Cek apakah sudah login
+            if (!AuthService.isAuthenticated()) {
+                showLoginRequired('quizContent', 'Kuis Memerlukan Login', 'Untuk mengakses dan mengerjakan kuis, Anda perlu login terlebih dahulu.', '🔒');
+                return;
+            }
+            
+            // Ambil ID lesson dari URL
+            lessonId = getUrlParam('id');
+            if (!lessonId) {
+                showError('quizAlert', 'ID materi tidak valid. Anda akan diarahkan ke halaman beranda.');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+                return;
+            }
+            
+            // Load lesson info dan quizzes
+            await loadLessonInfo();
+            await loadQuizzes();
+            
+            // Setup navigation
+            setupNavigation();
+        });
+        
+        // Load lesson information
+        async function loadLessonInfo() {
+            try {
+                currentLesson = await LessonService.getLessonById(lessonId);
+                displayLessonInfo(currentLesson);
+            } catch (error) {
+                showError('quizAlert', `Gagal memuat informasi materi: ${error.message || 'Terjadi kesalahan'}`);
+                document.getElementById('lessonInfo').innerHTML = '<p>Gagal memuat informasi materi</p>';
+            }
+        }
+        
+        // Display lesson information
+        function displayLessonInfo(lesson) {
+            document.title = `Kuis: ${lesson.title} - BelajarBahasa`;
+            
+            document.getElementById('lessonInfo').innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; color: #333;">${lesson.title}</h3>
+                        <p style="margin: 5px 0 0 0; color: #666;">Bahasa: ${lesson.language}</p>
+                    </div>
+                    <div>
+                        <span class="badge badge-primary">Kuis Pembelajaran</span>
+                    </div>
+                </div>
+            `;
+            
+            // Update breadcrumb
+            const lessonBreadcrumb = document.getElementById('lessonBreadcrumb');
+            lessonBreadcrumb.textContent = lesson.title;
+            lessonBreadcrumb.href = `lesson.html?id=${lesson.id}`;
+        }
+        
+        // Load quizzes
+        async function loadQuizzes() {
+            try {
+                showLoading('quizContent');
+                const quizzes = await LessonService.getLessonQuizzes(lessonId);
+                currentQuizzes = quizzes;
+                
+                if (quizzes && quizzes.length > 0) {
+                    displayQuizzes(quizzes);
+                } else {
+                    document.getElementById('quizContent').innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 40px;">
+                            <h3>Belum Ada Kuis</h3>
+                            <p>Materi ini belum memiliki kuis pembelajaran.</p>
+                            <a href="lesson.html?id=${lessonId}" class="btn">Kembali ke Materi</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showError('quizAlert', `Gagal memuat kuis: ${error.message || 'Terjadi kesalahan'}`);
+                document.getElementById('quizContent').innerHTML = '<p>Gagal memuat kuis</p>';
+            }
+        }
+        
+        // Display multiple quizzes
+        function displayQuizzes(quizzes) {
+            const quizContentElem = document.getElementById('quizContent');
+            
+            let quizzesHtml = `
+                <div class="quiz-header" style="margin-bottom: 30px;">
+                    <p style="color: #666; font-size: 16px;">
+                        Jawab semua pertanyaan berikut untuk menyelesaikan kuis materi ini.
+                    </p>
+                    <div class="quiz-progress">
+                        <span id="quizProgressText">Belum ada yang dijawab</span>
+                        <div class="progress-bar" style="margin-top: 10px;">
+                            <div class="progress-bar-fill" id="quizProgressBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Generate HTML untuk setiap quiz
+            quizzes.forEach((quiz, index) => {
+                const quizId = `quiz-${quiz.id}`;
+                quizzesHtml += `
+                    <div class="quiz-item" id="${quizId}" data-quiz-index="${index}">
+                        <div class="quiz-item-header">
+                            <h3 class="quiz-title">Pertanyaan ${index + 1} dari ${quizzes.length}</h3>
+                        </div>
+                        <div class="quiz-content">
+                            <!-- Content will be added by displayQuiz function -->
+                        </div>
+                    </div>
+                    ${index < quizzes.length - 1 ? '<hr style="margin: 30px 0; border: 1px solid #eee;" />' : ''}
+                `;
+            });
+            
+            quizContentElem.innerHTML = quizzesHtml;
+            
+            // Render setiap quiz
+            quizzes.forEach((quiz, index) => {
+                const quizId = `quiz-${quiz.id}`;
+                const quizContentElem = document.querySelector(`#${quizId} .quiz-content`);
+                displayQuiz(quiz, quizContentElem);
+            });
+            
+            // Update progress awal
+            updateQuizProgress();
+        }
+        
+        // Display single quiz
+        function displayQuiz(quiz, containerElem) {
+            if (!quiz || !containerElem) {
+                containerElem.innerHTML = '<p>Tidak ada kuis tersedia.</p>';
+                return;
+            }
+            
+            let optionsHtml = '';
+            
+            // Periksa apakah quiz.options adalah string atau object
+            let quizOptions;
+            if (typeof quiz.options === 'string') {
+                try {
+                    quizOptions = JSON.parse(quiz.options);
+                } catch (e) {
+                    console.error('Error parsing quiz options:', e);
+                    containerElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                    return;
+                }
+            } else {
+                quizOptions = quiz.options;
+            }
+            
+            // Pastikan quizOptions adalah object
+            if (!quizOptions || typeof quizOptions !== 'object') {
+                containerElem.innerHTML = '<p>Format kuis tidak valid.</p>';
+                return;
+            }
+            
+            // Buat HTML untuk setiap opsi
+            for (const [key, value] of Object.entries(quizOptions)) {
+                optionsHtml += `
+                    <li class="quiz-option" data-option="${key}" data-quiz-id="${quiz.id}">
+                        <div class="option-content">
+                            <span class="option-letter">${key}</span>
+                            <span class="option-text">${value}</span>
+                        </div>
+                    </li>
+                `;
+            }
+            
+            containerElem.innerHTML = `
+                <div class="quiz-question" style="font-size: 18px; font-weight: 500; margin-bottom: 20px;">
+                    ${quiz.question}
+                </div>
+                <ul class="quiz-options quiz-options-${quiz.id}" style="list-style: none; padding: 0;">
+                    ${optionsHtml}
+                </ul>
+                <div class="quiz-result" id="quiz-result-${quiz.id}" style="margin-top: 20px;"></div>
+                <button class="btn submit-quiz-btn" id="submit-quiz-${quiz.id}" data-quiz-id="${quiz.id}" style="margin-top: 20px;" disabled>
+                    Kirim Jawaban
+                </button>
+            `;
+            
+            // Tambahkan event listener untuk opsi
+            const optionElements = containerElem.querySelectorAll('.quiz-option');
+            optionElements.forEach(option => {
+                option.addEventListener('click', () => {
+                    const quizId = option.getAttribute('data-quiz-id');
+                    const quizOptions = document.querySelectorAll(`.quiz-option[data-quiz-id="${quizId}"]`);
+                    
+                    // Hapus selected class dari semua opsi quiz yang sama
+                    quizOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Tambahkan selected class ke opsi yang dipilih
+                    option.classList.add('selected');
+                    
+                    // Enable submit button untuk quiz ini
+                    const submitBtn = document.getElementById(`submit-quiz-${quizId}`);
+                    submitBtn.disabled = false;
+                    
+                    // Simpan jawaban ke data-selected-answer attribute di button
+                    submitBtn.setAttribute('data-selected-answer', option.getAttribute('data-option'));
+                });
+            });
+            
+            // Tambahkan event listener untuk submit button
+            const submitBtn = containerElem.querySelector('.submit-quiz-btn');
+            submitBtn.addEventListener('click', async (event) => {
+                const quizId = event.target.getAttribute('data-quiz-id');
+                const selectedAnswer = event.target.getAttribute('data-selected-answer');
+                
+                await submitQuizAnswer(quizId, selectedAnswer, event.target);
+            });
+        }
+        
+        // Submit quiz answer
+        async function submitQuizAnswer(quizId, selectedAnswer, submitButton) {
+            if (!quizId || !selectedAnswer) return;
+            
+            try {
+                // Disable submit button
+                submitButton.disabled = true;
+                submitButton.textContent = 'Mengirim...';
+                
+                // Submit jawaban
+                const result = await QuizService.submitQuizAnswer(quizId, selectedAnswer);
+                
+                // Tampilkan hasil
+                displayQuizResult(result, quizId, selectedAnswer);
+                
+                // Update progress
+                updateQuizProgress();
+                
+            } catch (error) {
+                document.getElementById(`quiz-result-${quizId}`).innerHTML = `
+                    <div class="alert alert-danger">
+                        Gagal mengirim jawaban: ${error.message || 'Terjadi kesalahan'}
+                    </div>
+                `;
+                
+                // Enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = 'Kirim Jawaban';
+            }
+        }
+        
+        // Display quiz result
+        function displayQuizResult(result, quizId, selectedAnswer) {
+            const quizResultElem = document.getElementById(`quiz-result-${quizId}`);
+            const optionElements = document.querySelectorAll(`.quiz-option[data-quiz-id="${quizId}"]`);
+            const submitButton = document.getElementById(`submit-quiz-${quizId}`);
+            
+            // Highlight jawaban
+            optionElements.forEach(option => {
+                const optionValue = option.getAttribute('data-option');
+                
+                // Reset classes
+                option.classList.remove('correct', 'incorrect');
+                
+                // Jawaban yang dipilih
+                if (optionValue === selectedAnswer) {
+                    if (result.correct) {
+                        option.classList.add('correct');
+                    } else {
+                        option.classList.add('incorrect');
+                    }
+                }
+                
+                // Jawaban yang benar (jika salah)
+                if (!result.correct && optionValue === result.correctAnswer) {
+                    option.classList.add('correct');
+                }
+            });
+            
+            // Tampilkan pesan hasil
+            if (result.correct) {
+                quizResultElem.innerHTML = `
+                    <div class="alert alert-success">
+                        <div style="display: flex; align-items: center;">
+                            <span style="font-size: 24px; margin-right: 10px;">✅</span>
+                            <div>
+                                <strong>Jawaban Benar!</strong><br>
+                                <small>Skor: ${result.progress ? result.progress.score : 'N/A'}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                completedQuizzes++;
+            } else {
+                quizResultElem.innerHTML = `
+                    <div class="alert alert-danger">
+                        <div style="display: flex; align-items: center;">
+                            <span style="font-size: 24px; margin-right: 10px;">❌</span>
+                            <div>
+                                <strong>Jawaban Salah!</strong><br>
+                                Jawaban yang benar adalah: <strong>${result.correctAnswer}</strong><br>
+                                <small>Skor: ${result.progress ? result.progress.score : 'N/A'}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Update button text
+            submitButton.textContent = 'Sudah Dijawab';
+            submitButton.classList.add('answered');
+            
+            // Disable all options
+            optionElements.forEach(option => {
+                option.style.pointerEvents = 'none';
+            });
+            
+            // Cek apakah semua kuis sudah selesai
+            checkQuizCompletion();
+        }
+        
+        // Update quiz progress
+        function updateQuizProgress() {
+            const totalQuizzes = currentQuizzes.length;
+            const answeredQuizzes = document.querySelectorAll('.submit-quiz-btn.answered').length;
+            const progressPercentage = totalQuizzes > 0 ? (answeredQuizzes / totalQuizzes) * 100 : 0;
+            
+            // Update progress text
+            document.getElementById('quizProgressText').textContent = 
+                `${answeredQuizzes} dari ${totalQuizzes} pertanyaan dijawab`;
+            
+            // Update progress bar
+            document.getElementById('quizProgressBar').style.width = `${progressPercentage}%`;
+        }
+        
+        // Check if all quizzes are completed
+        function checkQuizCompletion() {
+            const totalQuizzes = currentQuizzes.length;
+            const answeredQuizzes = document.querySelectorAll('.submit-quiz-btn.answered').length;
+            
+            if (answeredQuizzes === totalQuizzes) {
+                // Semua kuis selesai
+                showSuccess('quizAlert', `🎉 Selamat! Anda telah menyelesaikan semua kuis untuk materi "${currentLesson.title}"`);
+                
+                // Tampilkan tombol lihat progress
+                document.getElementById('viewProgress').style.display = 'inline-block';
+                
+                // Scroll ke atas untuk melihat pesan sukses
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // Setup navigation
+        function setupNavigation() {
+            const backToLessonBtn = document.getElementById('backToLesson');
+            backToLessonBtn.href = `lesson.html?id=${lessonId}`;
+        }
+    </script>
+</body>
+</html>

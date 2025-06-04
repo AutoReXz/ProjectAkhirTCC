@@ -41,9 +41,18 @@ const commentValidationRules = [
 
 // Admin validation rules
 const validateAdmin = {
+  createUser: [
+    body('name').notEmpty().withMessage('Nama wajib diisi'),
+    body('email').isEmail().withMessage('Email harus valid'),
+    body('password').isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
+    body('role').optional().isIn(['user', 'admin']).withMessage('Role harus user atau admin'),
+    validate
+  ],
+  
   updateUser: [
     body('name').optional().notEmpty().withMessage('Nama tidak boleh kosong'),
     body('email').optional().isEmail().withMessage('Email harus valid'),
+    body('password').optional().isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
     body('role').optional().isIn(['user', 'admin']).withMessage('Role harus user atau admin'),
     validate
   ],

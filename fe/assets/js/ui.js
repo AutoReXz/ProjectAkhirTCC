@@ -96,3 +96,21 @@ function redirectIfLoggedIn() {
     }
     return false;
 }
+
+// Tampilkan pesan login required dengan opsi untuk tetap di halaman
+function showLoginRequired(containerId, title = "Login Diperlukan", message = "Untuk mengakses fitur ini, silakan login terlebih dahulu.", icon = "🔐") {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="login-required-notice">
+                <div class="notice-icon">${icon}</div>
+                <h3>${title}</h3>
+                <p>${message}</p>
+                <div class="login-buttons">
+                    <a href="login.html" class="btn btn-primary">Masuk</a>
+                    <a href="register.html" class="btn btn-secondary">Daftar</a>
+                </div>
+            </div>
+        `;
+    }
+}

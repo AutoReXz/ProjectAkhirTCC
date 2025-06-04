@@ -1,6 +1,7 @@
 const { User, Lesson, Quiz, Comment, Progress } = require('../models');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/response.utils');
 const { Op } = require('sequelize');
+const argon2 = require('argon2');
 
 // Dashboard Statistics
 const getStats = async (req, res) => {
@@ -129,7 +130,9 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, role } = req.body;
+    const { name, email, password, role } = req.body;
+
+    console.log('Update user request:', { id, name, email, hasPassword: !!password, role });
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -149,11 +152,25 @@ const updateUser = async (req, res) => {
       }
     }
 
-    await user.update({
+    // Prepare update data
+    const updateData = {
       name: name || user.name,
       email: email || user.email,
       role: role || user.role
-    });
+    };
+
+    // Hash new password if provided
+    if (password && password.trim() !== '') {
+      console.log('Updating password for user:', id);
+      updateData.password_hash = await argon2.hash(password, {
+        type: argon2.argon2id,
+        memoryCost: 2**16,
+        timeCost: 3,
+        parallelism: 1
+      });
+    }
+
+    await user.update(updateData);
 
     const updatedUser = await User.findByPk(id, {
       attributes: { exclude: ['password_hash'] }
@@ -561,6 +578,44 @@ const deleteLesson = async (req, res) => {
   }
 };
 
+// Create new user (admin only)
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role = 'user' } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return sendErrorResponse(res, 'Email already exists', 400);
+    }
+
+    // Hash password
+    const hashedPassword = await argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 2**16,
+      timeCost: 3,
+      parallelism: 1
+    });
+
+    // Create user
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password_hash: hashedPassword,
+      role
+    });
+
+    const createdUser = await User.findByPk(user.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+
+    return sendSuccessResponse(res, createdUser, 'User created successfully');
+  } catch (error) {
+    console.error('Create user error:', error);
+    return sendErrorResponse(res, 'Failed to create user', 500);
+  }
+};
+
 module.exports = {
   // Stats
   getStats,
@@ -570,6 +625,7 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
+  createUser,
   
   // Quizzes
   getAllQuizzes,

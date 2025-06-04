@@ -13,6 +13,7 @@ router.get('/stats', adminController.getStats);
 
 // User Management Routes
 router.get('/users', adminController.getAllUsers);
+router.post('/users', validateAdmin.createUser, adminController.createUser);
 router.get('/users/:id', adminController.getUserById);
 router.put('/users/:id', validateAdmin.updateUser, adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);

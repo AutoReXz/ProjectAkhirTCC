@@ -38,11 +38,17 @@ exports.register = async (req, res) => {
       email: email.toLowerCase(), // Store email in lowercase
       password_hash: hashedPassword,
       role: 'user' // Default role
-    });
-
-    // Generate tokens
+    });    // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
+
+    // Set refresh token sebagai HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 hari
+    });
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -52,8 +58,8 @@ exports.register = async (req, res) => {
         email: user.email,
         role: user.role
       },
-      accessToken,
-      refreshToken
+      accessToken
+      // refreshToken tidak dikirim di response body untuk keamanan
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -89,11 +95,17 @@ exports.login = async (req, res) => {
         user_id: user.id,
         expires_at: { [Sequelize.Op.lt]: new Date() }
       }
-    });
-
-    // Generate tokens
+    });    // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
+
+    // Set refresh token sebagai HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 hari
+    });
 
     res.status(200).json({
       user: {
@@ -102,8 +114,8 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role
       },
-      accessToken,
-      refreshToken
+      accessToken
+      // refreshToken tidak dikirim di response body untuk keamanan
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -114,7 +126,8 @@ exports.login = async (req, res) => {
 // Refresh token
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Ambil refresh token dari cookie
+    const refreshToken = req.cookies.refreshToken;
     
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh token is required' });
@@ -144,17 +157,23 @@ exports.refreshToken = async (req, res) => {
 // Logout
 exports.logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Ambil refresh token dari cookie
+    const refreshToken = req.cookies.refreshToken;
     
-    if (!refreshToken) {
-      return res.status(400).json({ message: 'Refresh token is required' });
-    }
-
-    // Find and delete refresh token
-    const token = await RefreshToken.findOne({ where: { token: refreshToken } });
-    
-    if (token) {
-      await token.destroy();
+    if (refreshToken) {
+      // Find and delete refresh token from database
+      const token = await RefreshToken.findOne({ where: { token: refreshToken } });
+      
+      if (token) {
+        await token.destroy();
+      }
+      
+      // Clear the HttpOnly cookie
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
     }
     
     res.status(200).json({ message: 'Logged out successfully' });

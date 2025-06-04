@@ -52,14 +52,17 @@
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/ui.js"></script>
-    <script>
-        // Inisialisasi halaman
+    <script>        // Inisialisasi halaman
         document.addEventListener('DOMContentLoaded', async () => {
             // Update navigasi
             updateNavigation();
-            
-            // Cek apakah sudah login
-            if (!requireAuth()) return;
+              // Cek apakah sudah login
+            if (!AuthService.isAuthenticated()) {
+                // Tampilkan pesan login required
+                showLoginRequired('progressSummary', 'Progress Memerlukan Login', 'Untuk melihat progress belajar Anda, silakan login terlebih dahulu.', '📊');
+                showLoginRequired('progressDetail', 'Progress Memerlukan Login', 'Detail progress hanya tersedia untuk pengguna yang sudah login.', '📈');
+                return;
+            }
             
             // Load progress
             await loadProgress();
@@ -124,15 +127,14 @@
             progressDetailElem.innerHTML = `
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="background-color: #f8f9fa; text-align: left;">
-                            <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Materi</th>
+                        <tr style="background-color: #f8f9fa; text-align: left;">                            <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Materi</th>
                             <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Bahasa</th>
                             <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Status</th>
                             <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Skor</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #dee2e6;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${progressItems.map(item => `
+                    <tbody>                        ${progressItems.map(item => `
                             <tr>
                                 <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">
                                     <a href="lesson.html?id=${item.lesson_id}">${item.lesson.title}</a>
@@ -144,6 +146,14 @@
                                         '<span style="color: #dc3545;">Belum Selesai</span>'}
                                 </td>
                                 <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">${item.score || 0}</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">
+                                    <a href="lesson.html?id=${item.lesson_id}" class="btn btn-small" style="margin-right: 5px; font-size: 12px; padding: 5px 10px;">
+                                        📖 Materi
+                                    </a>
+                                    <a href="quiz.html?id=${item.lesson_id}" class="btn btn-small btn-primary" style="font-size: 12px; padding: 5px 10px;">
+                                        📝 Kuis
+                                    </a>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>

@@ -342,12 +342,7 @@
     text-align: center;
     padding: 40px;
     color: #6c757d;
-}
-
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    opacity: 0.5;
+    font-style: italic;
 }
 
 /* Loading State */
@@ -355,6 +350,19 @@
     text-align: center;
     padding: 40px;
     color: #6c757d;
+}
+
+/* Loading and Empty States */
+.loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.loading-state p {
+    font-style: italic;
 }
 
 /* Responsive */
