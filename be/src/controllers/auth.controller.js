@@ -46,8 +46,9 @@ exports.register = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 hari
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Untuk cross-domain di production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined // Set domain untuk production
     });
 
     res.status(201).json({
@@ -103,8 +104,9 @@ exports.login = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 hari
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Untuk cross-domain di production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined // Set domain untuk production
     });
 
     res.status(200).json({
@@ -167,12 +169,12 @@ exports.logout = async (req, res) => {
       if (token) {
         await token.destroy();
       }
-      
-      // Clear the HttpOnly cookie
+        // Clear the HttpOnly cookie
       res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict'
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
       });
     }
     

@@ -187,8 +187,7 @@
                     </div>
                 `;
                 return;
-            }
-              lessonListElem.innerHTML = lessons.map(lesson => `
+            }              lessonListElem.innerHTML = lessons.map(lesson => `
                 <div class="lesson-card modern-card" onclick="window.location.href='lesson.html?id=${lesson.id}'">
                     <div class="lesson-header">
                         <div class="lesson-language-badge">${lesson.language}</div>
@@ -196,13 +195,6 @@
                     </div>
                     <h3 class="lesson-title">${lesson.title}</h3>
                     <p class="lesson-description">${getShortDescription(lesson.title)}</p>
-                    <div class="lesson-meta">
-                        <div class="lesson-creator">
-                            <div class="creator-avatar">👨‍🏫</div>
-                            <span>${lesson.creator?.name || 'Admin'}</span>
-                        </div>
-                        <div class="lesson-date">${formatDate(lesson.created_at)}</div>
-                    </div>
                     <div class="lesson-footer">
                         <div class="lesson-stats">
                             <span class="stat">📖 Lengkap</span>
