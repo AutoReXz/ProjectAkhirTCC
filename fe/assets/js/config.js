@@ -3,7 +3,7 @@ const API_CONFIG = {
     // Deteksi environment berdasarkan hostname
     BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? "http://localhost:3000/api"
-        : "https://YOUR_BACKEND_CLOUD_RUN_URL/api",  // Ganti dengan URL Cloud Run Anda yang sebenarnya
+        : "https://bahasa-app-backend-263444552508.us-central1.run.app/api",  // Ganti dengan URL Cloud Run Anda yang sebenarnya
     
     // Endpoint Auth
     AUTH: {
